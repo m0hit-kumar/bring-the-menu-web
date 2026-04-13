@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { PlusCircle, Pencil, Trash, Loader2, Eye, Upload, Link as LinkIcon } from "lucide-react"
+import { PlusCircle, Pencil, Trash, Loader2, Eye, Upload, Link as LinkIcon, ChevronDown, ChevronRight } from "lucide-react"
 import Image from "next/image"
 import { useAuth } from "@/hooks/useAuth"
 import {
@@ -30,7 +30,11 @@ import { MenuPreview } from "@/components/menu/MenuPreview"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchImageFromSearch } from "@/lib/utils/imageSearch"
 
-export function MenuEditor() {
+interface MenuEditorProps {
+  showHeader?: boolean
+}
+
+export function MenuEditor({ showHeader = false }: MenuEditorProps) {
   const { restaurant } = useAuth()
   const [categories, setCategories] = useState<Record<string, DBMenuItem[]>>({})
   const [categoryNames, setCategoryNames] = useState<string[]>([])
@@ -46,6 +50,7 @@ export function MenuEditor() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
 
   // Load menu items from database
   useEffect(() => {
@@ -70,10 +75,29 @@ export function MenuEditor() {
 
   const addCategory = () => {
     if (newCategory.trim() && !categoryNames.includes(newCategory.trim())) {
-      setCategoryNames([...categoryNames, newCategory.trim()])
+      const category = newCategory.trim()
+      setCategoryNames([...categoryNames, category])
+      setExpandedCategories((prev) => ({ ...prev, [category]: true }))
       setNewCategory("")
       toast.success(`Category "${newCategory.trim()}" added`)
     }
+  }
+
+  useEffect(() => {
+    setExpandedCategories((prev) => {
+      const next: Record<string, boolean> = {}
+      categoryNames.forEach((name) => {
+        next[name] = prev[name] ?? false
+      })
+      return next
+    })
+  }, [categoryNames])
+
+  const toggleCategory = (categoryName: string) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [categoryName]: !prev[categoryName],
+    }))
   }
 
   const addOrUpdateItem = async (categoryName: string) => {
@@ -211,28 +235,55 @@ export function MenuEditor() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-        <h2 className="text-xl font-semibold">Manage Menu</h2>
-        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              Preview Menu
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto p-0">
-            <DialogHeader className="px-6 pt-6 pb-4">
-              <DialogTitle>Menu Preview</DialogTitle>
-              <DialogDescription>
-                See how your menu appears to customers. Unavailable items are shown with reduced opacity.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="px-6 pb-6">
-              <MenuPreview items={allMenuItems} restaurantName={restaurant?.name} />
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+      {showHeader ? (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <div>
+            <h1 className="text-3xl font-bold">Manage Menu</h1>
+            <p className="text-muted-foreground mt-2">Create and manage your menu sections and items</p>
+          </div>
+          <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Preview Menu
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto p-0">
+              <DialogHeader className="px-6 pt-6 pb-4">
+                <DialogTitle>Menu Preview</DialogTitle>
+                <DialogDescription>
+                  See how your menu appears to customers. Unavailable items are shown with reduced opacity.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="px-6 pb-6">
+                <MenuPreview items={allMenuItems} restaurantName={restaurant?.name} />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      ) : (
+        <div className="flex justify-end mb-4">
+          <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Preview Menu
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto p-0">
+              <DialogHeader className="px-6 pt-6 pb-4">
+                <DialogTitle>Menu Preview</DialogTitle>
+                <DialogDescription>
+                  See how your menu appears to customers. Unavailable items are shown with reduced opacity.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="px-6 pb-6">
+                <MenuPreview items={allMenuItems} restaurantName={restaurant?.name} />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row gap-2 mb-4">
         <Input
           placeholder="New section/category name"
@@ -261,255 +312,274 @@ export function MenuEditor() {
           <Card key={categoryName}>
             <CardHeader>
               <CardTitle className="flex justify-between">
-                {categoryName}
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleCategory(categoryName)}
+                    className="h-8 px-2"
+                  >
+                    {expandedCategories[categoryName] ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <span>{categoryName}</span>
+                </div>
                 <span className="text-sm font-normal text-muted-foreground">
                   {categories[categoryName]?.length || 0} items
                 </span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              {!categories[categoryName] || categories[categoryName].length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">No items in this section yet.</p>
-                  <p className="text-xs mt-1">Add items using the form below.</p>
-                </div>
-              ) : (
-                <ul className="space-y-4">
-                  {categories[categoryName].map((item) => (
-                    <li
-                      key={item.id}
-                      className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">
-                            {item.name} - ${item.price.toFixed(2)}
-                          </h3>
-                          <Switch
-                            checked={item.available}
-                            onCheckedChange={() => toggleItemAvailability(item)}
-                          />
-                          <span className={`text-xs ${item.available ? "text-green-600" : "text-gray-400"}`}>
-                            {item.available ? "Available" : "Unavailable"}
-                          </span>
-                        </div>
-                        {item.description && (
-                          <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
-                        )}
-                      </div>
-                      <div className="flex gap-2 w-full sm:w-auto">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => startEditingItem(item)}
-                          className="flex-1 sm:flex-none"
+            {expandedCategories[categoryName] && (
+              <>
+                <CardContent>
+                  {!categories[categoryName] || categories[categoryName].length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p className="text-sm">No items in this section yet.</p>
+                      <p className="text-xs mt-1">Add items using the form below.</p>
+                    </div>
+                  ) : (
+                    <ul className="space-y-4">
+                      {categories[categoryName].map((item) => (
+                        <li
+                          key={item.id}
+                          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
                         >
-                          <Pencil className="h-4 w-4 sm:mr-2" />
-                          <span className="hidden sm:inline">Edit</span>
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteItem(item.id, item.name)}
-                          className="flex-1 sm:flex-none"
-                        >
-                          <Trash className="h-4 w-4 sm:mr-2" />
-                          <span className="hidden sm:inline">Delete</span>
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-            <CardFooter className="flex flex-col items-start gap-4">
-              <div>
-                <Label htmlFor={`item-name-${categoryName}`}>Item Name *</Label>
-                <Input
-                  id={`item-name-${categoryName}`}
-                  placeholder="Item name"
-                  value={newItem.name}
-                  onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                  className="w-full mt-1"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor={`item-price-${categoryName}`}>Price *</Label>
-                <Input
-                  id={`item-price-${categoryName}`}
-                  placeholder="0.00"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={newItem.price || ""}
-                  onChange={(e) => setNewItem({ ...newItem, price: Number.parseFloat(e.target.value) || 0 })}
-                  className="w-full mt-1"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor={`item-description-${categoryName}`}>Description</Label>
-                <Textarea
-                  id={`item-description-${categoryName}`}
-                  placeholder="Item description (optional)"
-                  value={newItem.description}
-                  onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                  className="w-full mt-1"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label>Item Image</Label>
-                <Tabs defaultValue="upload" className="mt-2">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="upload" className="flex items-center gap-2">
-                      <Upload className="h-4 w-4" />
-                      Upload
-                    </TabsTrigger>
-                    <TabsTrigger value="url" className="flex items-center gap-2">
-                      <LinkIcon className="h-4 w-4" />
-                      Paste URL
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="upload" className="mt-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold">
+                                {item.name} - ${item.price.toFixed(2)}
+                              </h3>
+                              <Switch
+                                checked={item.available}
+                                onCheckedChange={() => toggleItemAvailability(item)}
+                              />
+                              <span className={`text-xs ${item.available ? "text-green-600" : "text-gray-400"}`}>
+                                {item.available ? "Available" : "Unavailable"}
+                              </span>
+                            </div>
+                            {item.description && (
+                              <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                            )}
+                          </div>
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => startEditingItem(item)}
+                              className="flex-1 sm:flex-none"
+                            >
+                              <Pencil className="h-4 w-4 sm:mr-2" />
+                              <span className="hidden sm:inline">Edit</span>
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteItem(item.id, item.name)}
+                              className="flex-1 sm:flex-none"
+                            >
+                              <Trash className="h-4 w-4 sm:mr-2" />
+                              <span className="hidden sm:inline">Delete</span>
+                            </Button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+                <CardFooter className="flex flex-col items-start gap-4">
+                  <div>
+                    <Label htmlFor={`item-name-${categoryName}`}>Item Name *</Label>
                     <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          // Validate file size (max 5MB)
-                          if (file.size > 5 * 1024 * 1024) {
-                            toast.error("Image size should be less than 5MB")
-                            return
-                          }
-                          // Validate file type
-                          if (!file.type.startsWith("image/")) {
-                            toast.error("Please select a valid image file")
-                            return
-                          }
-                          const reader = new FileReader()
-                          reader.onloadend = () => {
-                            setNewItem({ ...newItem, imageUrl: reader.result as string })
-                            toast.success("Image loaded successfully")
-                          }
-                          reader.onerror = () => {
-                            toast.error("Failed to load image")
-                          }
-                          reader.readAsDataURL(file)
-                        }
+                      id={`item-name-${categoryName}`}
+                      placeholder="Item name"
+                      value={newItem.name}
+                      onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                      className="w-full mt-1"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`item-price-${categoryName}`}>Price *</Label>
+                    <Input
+                      id={`item-price-${categoryName}`}
+                      placeholder="0.00"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={newItem.price || ""}
+                      onChange={(e) => setNewItem({ ...newItem, price: Number.parseFloat(e.target.value) || 0 })}
+                      className="w-full mt-1"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`item-description-${categoryName}`}>Description</Label>
+                    <Textarea
+                      id={`item-description-${categoryName}`}
+                      placeholder="Item description (optional)"
+                      value={newItem.description}
+                      onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                      className="w-full mt-1"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label>Item Image</Label>
+                    <Tabs defaultValue="upload" className="mt-2">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="upload" className="flex items-center gap-2">
+                          <Upload className="h-4 w-4" />
+                          Upload
+                        </TabsTrigger>
+                        <TabsTrigger value="url" className="flex items-center gap-2">
+                          <LinkIcon className="h-4 w-4" />
+                          Paste URL
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="upload" className="mt-3">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              // Validate file size (max 5MB)
+                              if (file.size > 5 * 1024 * 1024) {
+                                toast.error("Image size should be less than 5MB")
+                                return
+                              }
+                              // Validate file type
+                              if (!file.type.startsWith("image/")) {
+                                toast.error("Please select a valid image file")
+                                return
+                              }
+                              const reader = new FileReader()
+                              reader.onloadend = () => {
+                                setNewItem({ ...newItem, imageUrl: reader.result as string })
+                                toast.success("Image loaded successfully")
+                              }
+                              reader.onerror = () => {
+                                toast.error("Failed to load image")
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                          className="w-full"
+                        />
+                      </TabsContent>
+                      <TabsContent value="url" className="mt-3">
+                        <div className="space-y-2">
+                          <Input
+                            type="url"
+                            placeholder="https://example.com/image.jpg"
+                            value={newItem.imageUrl && (newItem.imageUrl.startsWith("http") || newItem.imageUrl.startsWith("https")) ? newItem.imageUrl : ""}
+                            onChange={(e) => {
+                              const url = e.target.value.trim()
+                              if (url) {
+                                setNewItem({ ...newItem, imageUrl: url })
+                              } else {
+                                setNewItem({ ...newItem, imageUrl: "" })
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const url = e.target.value.trim()
+                              if (url) {
+                                try {
+                                  new URL(url)
+                                  // Validate it's an image URL (optional check)
+                                  const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"]
+                                  const hasImageExtension = imageExtensions.some((ext) =>
+                                    url.toLowerCase().includes(ext)
+                                  ) || url.match(/\.(jpg|jpeg|png|gif|webp|svg)/i)
+
+                                  // Also allow URLs without extension (e.g., CDN URLs, API endpoints)
+                                  if (!hasImageExtension && !url.includes("data:image")) {
+                                    // Just warn, don't block - some URLs don't have extensions
+                                    console.log("URL might not be an image, but allowing it")
+                                  }
+                                } catch {
+                                  toast.error("Please enter a valid URL")
+                                  setNewItem({ ...newItem, imageUrl: "" })
+                                }
+                              }
+                            }}
+                            className="w-full"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Paste an image URL (e.g., from Imgur, Cloudinary, or any image hosting service)
+                          </p>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                    {newItem.imageUrl && (
+                      <div className="mt-3 flex items-center gap-3">
+                        <div className="relative">
+                          <Image
+                            src={newItem.imageUrl}
+                            alt="Preview"
+                            width={80}
+                            height={80}
+                            className="object-cover rounded border"
+                            onError={() => {
+                              toast.error("Failed to load image. Please check the URL.")
+                              setNewItem({ ...newItem, imageUrl: "" })
+                            }}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setNewItem({ ...newItem, imageUrl: "" })}
+                          className="text-destructive"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    onClick={() => addOrUpdateItem(categoryName)}
+                    className="w-full"
+                    disabled={!newItem.name.trim() || !newItem.price || newItem.price <= 0 || saving}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : editingItemId ? (
+                      "Update Item"
+                    ) : (
+                      "Add Item"
+                    )}
+                  </Button>
+                  {editingItemId && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setNewItem({
+                          name: "",
+                          price: 0,
+                          category: "",
+                          description: "",
+                          imageUrl: "",
+                        })
+                        setEditingItemId(null)
                       }}
                       className="w-full"
-                    />
-                  </TabsContent>
-                  <TabsContent value="url" className="mt-3">
-                    <div className="space-y-2">
-                      <Input
-                        type="url"
-                        placeholder="https://example.com/image.jpg"
-                        value={newItem.imageUrl && (newItem.imageUrl.startsWith("http") || newItem.imageUrl.startsWith("https")) ? newItem.imageUrl : ""}
-                        onChange={(e) => {
-                          const url = e.target.value.trim()
-                          if (url) {
-                            setNewItem({ ...newItem, imageUrl: url })
-                          } else {
-                            setNewItem({ ...newItem, imageUrl: "" })
-                          }
-                        }}
-                        onBlur={(e) => {
-                          const url = e.target.value.trim()
-                          if (url) {
-                            try {
-                              new URL(url)
-                              // Validate it's an image URL (optional check)
-                              const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"]
-                              const hasImageExtension = imageExtensions.some((ext) => 
-                                url.toLowerCase().includes(ext)
-                              ) || url.match(/\.(jpg|jpeg|png|gif|webp|svg)/i)
-                              
-                              // Also allow URLs without extension (e.g., CDN URLs, API endpoints)
-                              if (!hasImageExtension && !url.includes("data:image")) {
-                                // Just warn, don't block - some URLs don't have extensions
-                                console.log("URL might not be an image, but allowing it")
-                              }
-                            } catch {
-                              toast.error("Please enter a valid URL")
-                              setNewItem({ ...newItem, imageUrl: "" })
-                            }
-                          }
-                        }}
-                        className="w-full"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Paste an image URL (e.g., from Imgur, Cloudinary, or any image hosting service)
-                      </p>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-                {newItem.imageUrl && (
-                  <div className="mt-3 flex items-center gap-3">
-                    <div className="relative">
-                      <Image 
-                        src={newItem.imageUrl} 
-                        alt="Preview" 
-                        width={80} 
-                        height={80} 
-                        className="object-cover rounded border"
-                        onError={() => {
-                          toast.error("Failed to load image. Please check the URL.")
-                          setNewItem({ ...newItem, imageUrl: "" })
-                        }}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setNewItem({ ...newItem, imageUrl: "" })}
-                      className="text-destructive"
+                      disabled={saving}
                     >
-                      Remove
+                      Cancel Edit
                     </Button>
-                  </div>
-                )}
-              </div>
-              <Button
-                onClick={() => addOrUpdateItem(categoryName)}
-                className="w-full"
-                disabled={!newItem.name.trim() || !newItem.price || newItem.price <= 0 || saving}
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : editingItemId ? (
-                  "Update Item"
-                ) : (
-                  "Add Item"
-                )}
-              </Button>
-              {editingItemId && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setNewItem({
-                      name: "",
-                      price: 0,
-                      category: "",
-                      description: "",
-                      imageUrl: "",
-                    })
-                    setEditingItemId(null)
-                  }}
-                  className="w-full"
-                  disabled={saving}
-                >
-                  Cancel Edit
-                </Button>
-              )}
-            </CardFooter>
+                  )}
+                </CardFooter>
+              </>
+            )}
           </Card>
         ))
       )}

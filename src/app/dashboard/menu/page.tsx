@@ -26,13 +26,7 @@ export default function MenuPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Manage Menu</h1>
-        <p className="text-muted-foreground mt-2">
-          Create and manage your menu sections and items
-        </p>
-      </div>
-      <MenuEditor />
+      <MenuEditor showHeader />
     </DashboardLayout>
   );
 }

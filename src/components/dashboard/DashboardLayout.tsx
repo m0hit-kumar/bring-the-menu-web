@@ -55,7 +55,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col w-0 lg:w-auto">
         {/* Header */}
-        <header className="bg-[#8B4513] text-white px-4 lg:px-6 py-4 shadow-md">
+        <header className="bg-gradient-to-r from-green-dark via-green-DEFAULT to-green-medium text-white px-4 lg:px-6 py-4 shadow-sm">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               {/* Menu Button - Toggles sidebar on all screen sizes */}

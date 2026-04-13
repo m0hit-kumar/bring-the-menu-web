@@ -155,7 +155,7 @@ export function RegisterSection() {
                 type="submit"
                 disabled={isLoading || isGoogleLoading}
                 aria-label="Create account"
-                className="w-full h-14 rounded-xl bg-green-DEFAULT hover:bg-green-medium text-white text-base font-semibold shadow-lg shadow-green-DEFAULT/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full h-14 rounded-xl bg-green hover:bg-green-medium text-white text-base font-semibold shadow-lg shadow-green-DEFAULT/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <span>{isLoading ? "Creating Account..." : "Create Account"}</span>
                 <ChevronRight className="h-5 w-5" aria-hidden="true" />
